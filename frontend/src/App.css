@@ -1,0 +1,56 @@
+.content-wrapper {
+  background-color: #fff;
+}
+
+.calendar-container {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 10px;
+}
+
+.day-column {
+  flex: 1;
+  min-width: 150px;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+}
+
+.day-header {
+  background-color: #f8f9fa;
+  padding: 8px;
+  font-weight: bold;
+  text-align: center;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.time-slot {
+  padding: 12px 8px;
+  margin: 4px;
+  border-radius: 4px;
+  font-size: 0.9em;
+  cursor: pointer;
+  text-align: center;
+  transition: background-color 0.2s;
+}
+
+.slot-available {
+  background-color: #28a745;
+  color: white;
+}
+.slot-available:hover {
+  background-color: #218838;
+}
+
+.slot-booked {
+  background-color: #dc3545;
+  color: white;
+  cursor: default;
+}
+
+.slot-unavailable {
+  background-color: #6c757d;
+  color: white;
+  cursor: not-allowed;
+}

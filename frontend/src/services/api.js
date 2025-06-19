@@ -70,3 +70,27 @@ export const activateDoctor = (doctorId) => {
 export const deactivateDoctor = (doctorId) => {
     return apiClient.patch(`/admin/doctors/${doctorId}/deactivate`);
 };
+
+export const getAllNursesAdmin = () => {
+    return apiClient.get('/admin/nurses');
+};
+export const createNurse = (nurseData) => {
+    return apiClient.post('/admin/nurses', nurseData);
+};
+export const updateNurse = (nurseId, nurseData) => {
+    return apiClient.put(`/admin/nurses/${nurseId}`, nurseData);
+};
+
+export const activateNurse = (nurseId) => {
+    return apiClient.patch(`/admin/nurses/${nurseId}/activate`);
+};
+
+export const deactivateNurse = (nurseId) => {
+    return apiClient.patch(`/admin/nurses/${nurseId}/deactivate`);
+};
+
+// --- Account Management ---
+export const updateCredentials = (newPassword) => {
+    // Only updating password, username is not changeable from this page.
+    return apiClient.put('/account/credentials', { newPassword });
+};

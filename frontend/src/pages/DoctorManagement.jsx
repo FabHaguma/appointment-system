@@ -87,9 +87,11 @@ const DoctorManagement = () => {
                                     <thead>
                                         <tr>
                                             <th>Name</th>
+                                            <th>Reg-Number</th>
                                             <th>Specialization</th>
-                                            <th>Consultation Duration</th>
-                                            <th>Employment Type</th>
+                                            <th>Consultation</th>
+                                            <th>Work Type</th>
+                                            <th>Status</th>
                                             <th>Actions</th>
                                         </tr>
                                     </thead>
@@ -97,6 +99,7 @@ const DoctorManagement = () => {
                                         {doctors.map(doc => (
                                             <tr key={doc.id}>
                                                 <td>{doc.name}</td>
+                                                <td>{doc.regNumber}</td>
                                                 <td>{doc.specialization}</td>
                                                 <td>{doc.consultationDuration} minutes</td>
                                                 <td>{doc.employmentType}</td>

@@ -18,7 +18,7 @@ public class ScheduleService {
     private final AppointmentRepository appointmentRepository;
     private final DoctorRepository doctorRepository;
     // private static final int CONSULTATION_DURATION_MINUTES = 30;
-    private static final DayOfWeek[] CLINIC_DAYS = {DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY};
+    private static final DayOfWeek[] CLINIC_DAYS = {DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY, DayOfWeek.SATURDAY};
     private static final LocalTime CLINIC_START_TIME = LocalTime.of(9, 0);
     private static final LocalTime CLINIC_END_TIME = LocalTime.of(17, 0);
     private static final LocalTime LUNCH_START_TIME = LocalTime.of(12, 0);
@@ -58,7 +58,7 @@ public class ScheduleService {
 
                 // 3. Determine status of each slot // isLunchTime(slotTime.toLocalTime())
                 if (isLunchTime(slotTime.toLocalTime()) || isLunchTime(slot.getEndTime().toLocalTime().minusNanos(1))) {
-                    slot.setStatus("Unavailable");
+                    slot.setStatus("Lunch Break");
                 } else if (appointmentMap.containsKey(slotTime)) {
                     Appointment booking = appointmentMap.get(slotTime);
                     slot.setStatus("Booked");

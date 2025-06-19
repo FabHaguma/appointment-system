@@ -21,11 +21,11 @@ public class AccountController {
     }
 
     @PutMapping("/credentials")
-    @PreAuthorize("hasAuthority('DOCTOR')")
+    @PreAuthorize("hasAnyAuthority('DOCTOR', 'NURSE')")
     public ResponseEntity<?> updateCredentials(Authentication authentication, @RequestBody UpdateCredentialsRequest request) {
-        String currentUsername = authentication.getName();
+        String username = authentication.getName();
         try {
-            userService.updateUserCredentials(currentUsername, request.getNewUsername(), request.getNewPassword());
+            userService.updateUserCredentials(username, request.getNewUsername(), request.getNewPassword());
             return ResponseEntity.ok("Credentials updated successfully. Please log in again with your new credentials.");
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());

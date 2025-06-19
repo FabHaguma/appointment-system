@@ -8,19 +8,21 @@ export const AuthProvider = ({ children }) => {
         const token = localStorage.getItem('token');
         const username = localStorage.getItem('username');
         const role = localStorage.getItem('role');
+        const actualName = localStorage.getItem('actualName');
         if (token && username && role) {
-            return { token, username, role };
+            return { token, username, role, actualName };
         }
         return null;
     });
 
     const login = async (username, password) => {
         const response = await api.login(username, password);
-        const { token, role } = response.data;
+        const { token, role, actualName } = response.data;
         localStorage.setItem('token', token);
         localStorage.setItem('username', username);
         localStorage.setItem('role', role);
-        setUser({ token, username, role });
+        localStorage.setItem('actualName', actualName);
+        setUser({ token, username, role, actualName });
         api.setAuthHeader(token); // Set header for subsequent requests
     };
 
@@ -28,6 +30,7 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('token');
         localStorage.removeItem('username');
         localStorage.removeItem('role');
+        localStorage.removeItem('actualName');
         setUser(null);
         api.setAuthHeader(null); // Clear auth header
     };

@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 public class ScheduleSlot {
     private LocalDateTime startTime;
     private LocalDateTime endTime;
-    private String status; // "Available", "Booked", "Unavailable"
+    private String status; // "Available", "Booked", "Unavailable", "Lunch Break"
     
     // Appointment details (if booked)
     private Long appointmentId;

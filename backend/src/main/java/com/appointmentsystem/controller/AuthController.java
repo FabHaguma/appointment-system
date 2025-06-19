@@ -1,10 +1,12 @@
 package com.appointmentsystem.controller;
 
+import com.appointmentsystem.security.CustomUserDetails;
 import com.appointmentsystem.service.JwtService;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
@@ -16,11 +18,11 @@ import java.util.stream.Collectors;
 public class AuthController {
 
     private final AuthenticationManager authenticationManager;
-    private final JwtService jwtService;
+    @Autowired
+    private JwtService jwtService;
 
-    public AuthController(AuthenticationManager authenticationManager, JwtService jwtService) {
+    public AuthController(AuthenticationManager authenticationManager) {
         this.authenticationManager = authenticationManager;
-        this.jwtService = jwtService;
     }
 
     @PostMapping("/login")
@@ -29,13 +31,14 @@ public class AuthController {
                 new UsernamePasswordAuthenticationToken(authRequest.username(), authRequest.password()));
 
         if (authentication.isAuthenticated()) {
-            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+            CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
             String token = jwtService.generateToken(userDetails);
             
             Map<String, String> response = new HashMap<>();
             response.put("token", token);
             response.put("username", userDetails.getUsername());
             response.put("role", userDetails.getAuthorities().stream().map(a -> a.getAuthority()).collect(Collectors.joining(",")));
+            response.put("actualName", userDetails.getActualName());
 
             return response;
         } else {

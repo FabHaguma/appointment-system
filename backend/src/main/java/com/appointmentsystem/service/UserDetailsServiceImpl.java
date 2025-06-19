@@ -1,33 +1,32 @@
-package com.appointmentsystem.service;
+// package com.appointmentsystem.service;
 
-import com.appointmentsystem.model.User;
-import com.appointmentsystem.repository.UserRepository;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.stereotype.Service;
+// import com.appointmentsystem.model.User;
+// import com.appointmentsystem.repository.UserRepository;
 
-import java.util.Collections;
+// import org.springframework.beans.factory.annotation.Autowired;
+// import org.springframework.security.core.authority.SimpleGrantedAuthority;
+// import org.springframework.security.core.userdetails.UserDetails;
+// import org.springframework.security.core.userdetails.UserDetailsService;
+// import org.springframework.security.core.userdetails.UsernameNotFoundException;
+// import org.springframework.stereotype.Service;
 
-@Service
-public class UserDetailsServiceImpl implements UserDetailsService {
+// import java.util.Collections;
 
-    private final UserRepository userRepository;
+// @Service
+// public class UserDetailsServiceImpl implements UserDetailsService {
 
-    public UserDetailsServiceImpl(UserRepository userRepository) {
-        this.userRepository = userRepository;
-    }
+//     @Autowired
+//     private UserRepository userRepository;
 
-    @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
+//     @Override
+//     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+//         User user = userRepository.findByUsername(username)
+//                 .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
 
-        return new org.springframework.security.core.userdetails.User(
-                user.getUsername(),
-                user.getPassword(),
-                Collections.singletonList(new SimpleGrantedAuthority(user.getRole()))
-        );
-    }
-}
+//         return new org.springframework.security.core.userdetails.User(
+//                 user.getUsername(),
+//                 user.getPassword(),
+//                 Collections.singletonList(new SimpleGrantedAuthority(user.getRole()))
+//         );
+//     }
+// }

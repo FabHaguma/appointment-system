@@ -1,151 +1,114 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import * as api from '../services/api';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import FullCalendar from '@fullcalendar/react';
+import dayGridPlugin from '@fullcalendar/daygrid';
+import timeGridPlugin from '@fullcalendar/timegrid';
+import interactionPlugin from '@fullcalendar/interaction';
 import { useAuth } from '../contexts/AuthContext';
-import { format, startOfWeek, addDays, isSameDay } from 'date-fns';
+
+import { useDoctors } from '../hooks/useDoctors';
+import { useSchedule } from '../hooks/useSchedule';
+import { useBooking } from '../hooks/useBooking';
+import DoctorSelector from './DoctorSelector';
 import BookingModal from './BookingModal';
 
 const Scheduler = () => {
   const { user } = useAuth();
-  // Determine if the user is a doctor
-  console.log("User:", user);
   const isDoctor = user.role === 'DOCTOR';
   
-  const [doctors, setDoctors] = useState([]);
-  const [selectedDoctor, setSelectedDoctor] = useState('');
-  const [currentWeek, setCurrentWeek] = useState(new Date());
-  const [schedule, setSchedule] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedSlot, setSelectedSlot] = useState(null);
+  const calendarRef = useRef(null);
+  const [currentView, setCurrentView] = useState('timeGridWeek');
 
-  // Fetch doctor list for Admin/Nurse
+  const { selectedDoctor, setSelectedDoctor, doctorOptions, selectedDoctorOption } = useDoctors(isDoctor);
+  const { events, isLoading, fetchSchedule } = useSchedule(isDoctor, selectedDoctor, calendarRef);
+  const { 
+    isModalOpen, 
+    selectedSlot, 
+    openBookingModal, 
+    closeBookingModal, 
+    handleBookingSubmit, 
+    handleCancelAppointment 
+  } = useBooking(fetchSchedule);
+
   useEffect(() => {
-    if (!isDoctor) {
-      api.getDoctors().then(response => {
-        setDoctors(response.data);
-        if (response.data.length > 0) {
-          setSelectedDoctor(response.data[0].id);
-        }
-      });
-    }
-  }, [isDoctor]);
+    fetchSchedule();
+  }, [selectedDoctor, fetchSchedule]);
 
-  // Fetch schedule based on role
-  useEffect(() => {
-    const fetchSchedule = () => {
-      setIsLoading(true);
-      const schedulePromise = isDoctor
-        ? api.getMySchedule(currentWeek)
-        : api.getWeeklySchedule(selectedDoctor, currentWeek);
-
-      schedulePromise
-        .then(response => {
-          setSchedule(response.data);
-          setIsLoading(false);
-        })
-        .catch(error => {
-          console.error("Error fetching schedule:", error);
-          setIsLoading(false);
-        });
-    };
-    
-    // Don't fetch if nurse hasn't selected a doctor yet
-    if (isDoctor || selectedDoctor) {
-      fetchSchedule();
-    }
-  }, [selectedDoctor, currentWeek, isDoctor]);
-
-  const handleSlotClick = (slot) => {
-    // Doctors have read-only view
+  const handleEventClick = (clickInfo) => {
     if (isDoctor) return;
 
+    const slot = clickInfo.event.extendedProps;
     if (slot.status === 'Available') {
-      setSelectedSlot(slot);
-      setIsModalOpen(true);
+      openBookingModal(slot);
     } else if (slot.status === 'Booked') {
-      if (window.confirm(`Do you want to cancel the appointment for ${slot.patientName}?`)) {
-        api.cancelAppointment(slot.appointmentId).then(() => {
-          // Refresh schedule
-          setCurrentWeek(prev => new Date(prev));
-        });
-      }
+      handleCancelAppointment(slot);
     }
   };
-
   
-  const handleBookingSubmit = async (patientDetails) => {
-    const appointmentData = {
-        ...patientDetails,
-        doctorId: selectedDoctor,
-        startTime: selectedSlot.startTime,
-    };
-    try {
-        await api.createAppointment(appointmentData);
-        setIsModalOpen(false);
-        // Refresh schedule
-        setCurrentWeek(prev => new Date(prev));
-    } catch (error) {
-        alert("Failed to book appointment. The slot may have been taken.");
-        console.error("Booking failed", error);
-    }
+  const onBookingSubmit = (patientDetails) => {
+    handleBookingSubmit(patientDetails, selectedDoctor);
   };
 
-  const groupedSchedule = useMemo(() => {
-    const weekStart = startOfWeek(currentWeek, { weekStartsOn: 1 }); // Monday
-    const days = Array.from({ length: 5 }).map((_, i) => addDays(weekStart, i));
-    
-    return days.map(day => ({
-      date: day,
-      slots: schedule.filter(slot => isSameDay(new Date(slot.startTime), day)),
-    }));
-  }, [schedule, currentWeek]);
+  const handleDatesSet = useCallback((dateInfo) => {
+    setCurrentView(dateInfo.view.type);
+    fetchSchedule();
+  }, [fetchSchedule]);
 
+  const handleDateClick = (arg) => {
+    const calendarApi = calendarRef.current?.getApi();
+    if (calendarApi?.view.type === 'dayGridMonth') {
+        calendarApi.changeView('timeGridDay', arg.date);
+    }
+  };
 
   return (
     <div className="card">
       <div className="card-header">
-        {/* Hide doctor selector for Doctors */}
         {!isDoctor && (
-          <div className="form-group row">
-            <label className="col-sm-2 col-form-label">Select Doctor</label>
-            <div className="col-sm-4">
-              <select className="form-control" value={selectedDoctor} onChange={e => setSelectedDoctor(e.target.value)}>
-                {doctors.map(doc => <option key={doc.id} value={doc.id}>{doc.name}</option>)}
-              </select>
-            </div>
-          </div>
+          <DoctorSelector 
+            selectedDoctorOption={selectedDoctorOption}
+            onChange={setSelectedDoctor}
+            options={doctorOptions}
+          />
         )}
       </div>
       <div className="card-body">
-        {isLoading ? <p>Loading schedule...</p> : (
-          <div className="calendar-container">
-            {groupedSchedule.map(({ date, slots }) => (
-              <div key={date.toString()} className="day-column">
-                <div className="day-header">{format(date, 'EEE, MMM d')}</div>
-                {slots.map(slot => (
-                  <div
-                    key={slot.startTime}
-                    className={`time-slot slot-${slot.status.toLowerCase()} ${isDoctor ? 'read-only' : ''}`}
-                    onClick={() => handleSlotClick(slot)}
-                    style={{ cursor: isDoctor ? 'default' : '' }}
-                  >
-                    {format(new Date(slot.startTime), 'p')}
-                    {slot.status === 'Booked' && <div style={{fontSize: '0.8em', fontWeight: 'bold'}}>{slot.patientName}</div>}
-                  </div>
-                ))}
-              </div>
-            ))}
-          </div>
-        )}
+        {isLoading && <p>Loading schedule...</p>}
+        <FullCalendar
+          ref={calendarRef}
+          plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+          headerToolbar={{
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay'
+          }}
+          initialView="timeGridWeek"
+          events={currentView === 'dayGridMonth' ? [] : events}
+          eventClick={handleEventClick}
+          datesSet={handleDatesSet}
+          dateClick={handleDateClick}
+          weekends={true}
+          firstDay={1}
+          slotMinTime="09:00:00"
+          slotMaxTime="17:00:00"
+          height="auto"
+          navLinks={true}
+        />
       </div>
       {isModalOpen && (
         <BookingModal 
           slot={selectedSlot}
-          onClose={() => setIsModalOpen(false)}
-          onSubmit={handleBookingSubmit}
+          onClose={closeBookingModal}
+          onSubmit={onBookingSubmit}
         />
       )}
+      <style>{`
+        .cursor-pointer {
+          cursor: pointer;
+        }
+        .read-only-event {
+          cursor: default !important;
+        }
+      `}</style>
     </div>
   );
 };

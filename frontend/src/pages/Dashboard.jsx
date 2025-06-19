@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 const Dashboard = () => {
     const { user } = useAuth();
     const pageTitle = user?.role === 'DOCTOR' ? "My Schedule" : "Appointment Scheduler";
+    console.log("Dashboard rendered for user:", user);
     
     return (
         <>

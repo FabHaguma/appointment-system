@@ -16,12 +16,13 @@ public class UserService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    public User createUser(String username, String password, String role) {
+    public User createUser(String username, String actualName, String password, String role) {
         if (userRepository.findByUsername(username).isPresent()) {
             throw new RuntimeException("Username already exists");
         }
         User newUser = new User();
         newUser.setUsername(username);
+        newUser.setActualName(actualName);
         newUser.setPassword(passwordEncoder.encode(password));
         newUser.setRole(role);
         return userRepository.save(newUser);

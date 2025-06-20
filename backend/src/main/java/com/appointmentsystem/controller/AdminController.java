@@ -4,148 +4,121 @@ import com.appointmentsystem.dto.CreateDoctorRequest;
 import com.appointmentsystem.dto.CreateNurseRequest;
 import com.appointmentsystem.model.Doctor;
 import com.appointmentsystem.model.Nurse;
-import com.appointmentsystem.model.User;
-import com.appointmentsystem.repository.DoctorRepository;
-import com.appointmentsystem.repository.NurseRepository;
-import com.appointmentsystem.service.UserService;
+import com.appointmentsystem.service.AdminService; // Import the new service
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin")
-@PreAuthorize("hasAuthority('ADMIN')") // All methods in this controller require ADMIN role
+@PreAuthorize("hasAuthority('ADMIN')")
 public class AdminController {
 
-    private final DoctorRepository doctorRepository;
-    private final NurseRepository nurseRepository;
-    private final UserService userService;
+    private final AdminService adminService;
 
-    public AdminController(DoctorRepository doctorRepository, UserService userService, NurseRepository nurseRepository) {
-        this.doctorRepository = doctorRepository;
-        this.userService = userService;
-        this.nurseRepository = nurseRepository;
+    // Inject AdminService instead of individual repositories/services
+    public AdminController(AdminService adminService) {
+        this.adminService = adminService;
     }
 
-    // A new endpoint for admins to get ALL doctors, including inactive ones
+    // --- Doctor Endpoints ---
+
     @GetMapping("/doctors")
     public List<Doctor> getAllDoctors() {
-        return doctorRepository.findAll();
+        return adminService.getAllDoctors();
     }
 
     @PostMapping("/doctors")
     public ResponseEntity<Doctor> createDoctor(@RequestBody CreateDoctorRequest request) {
-        String actualName = "Dr. " + request.getFirstName() + " " + request.getLastName();
-        User newUser = userService.createUser(request.getRegNumber(), actualName, request.getPassword(), "DOCTOR");
-
-        Doctor newDoctor = new Doctor();
-        newDoctor.setRegNumber(request.getRegNumber());
-        newDoctor.setFirstName(request.getFirstName());
-        newDoctor.setLastName(request.getLastName());
-        newDoctor.setGender(request.getGender());
-        newDoctor.setName(actualName);
-        newDoctor.setSpecialization(request.getSpecialization());
-        newDoctor.setEmploymentType(request.getEmploymentType());
-        newDoctor.setConsultationDuration(request.getConsultationDuration());
-        newDoctor.setUser(newUser);
-        newDoctor.setActive(true);
-
-        Doctor savedDoctor = doctorRepository.save(newDoctor);
-        return ResponseEntity.ok(savedDoctor);
+        try {
+            Doctor savedDoctor = adminService.createDoctor(request);
+            return ResponseEntity.status(HttpStatus.CREATED).body(savedDoctor);
+        } catch (IllegalStateException e) {
+            // e.g., Username already exists
+            throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage(), e);
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred", e);
+        }
     }
 
     @PutMapping("/doctors/{doctorId}")
     public ResponseEntity<Doctor> updateDoctor(@PathVariable Long doctorId, @RequestBody Doctor doctorDetails) {
-        return doctorRepository.findById(doctorId)
-                .map(doctor -> {
-                    doctor.setFirstName(doctorDetails.getFirstName());
-                    doctor.setLastName(doctorDetails.getLastName());
-                    doctor.setName("Dr. " + doctorDetails.getFirstName() + " " + doctorDetails.getLastName());
-                    doctor.setGender(doctorDetails.getGender());
-                    doctor.setRegNumber(doctorDetails.getRegNumber());
-                    doctor.setActive(doctorDetails.isActive());
-                    doctor.setSpecialization(doctorDetails.getSpecialization());
-                    doctor.setConsultationDuration(doctorDetails.getConsultationDuration());
-                    doctor.setEmploymentType(doctorDetails.getEmploymentType());
-                    Doctor updatedDoctor = doctorRepository.save(doctor);
-                    return ResponseEntity.ok(updatedDoctor);
-                }).orElse(ResponseEntity.notFound().build());
+        try {
+            Doctor updatedDoctor = adminService.updateDoctor(doctorId, doctorDetails);
+            return ResponseEntity.ok(updatedDoctor);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
+        }
     }
 
     @PatchMapping("/doctors/{doctorId}/deactivate")
-    public ResponseEntity<Doctor> deactivateDoctor(@PathVariable Long doctorId) {
-        return doctorRepository.findById(doctorId).map(doctor -> {
-            doctor.setActive(false);
-            doctorRepository.save(doctor);
-            return ResponseEntity.ok(doctor);
-        }).orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<Void> deactivateDoctor(@PathVariable Long doctorId) {
+        try {
+            adminService.setDoctorActiveStatus(doctorId, false);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
+        }
     }
 
     @PatchMapping("/doctors/{doctorId}/activate")
-    public ResponseEntity<Doctor> activateDoctor(@PathVariable Long doctorId) {
-        return doctorRepository.findById(doctorId).map(doctor -> {
-            doctor.setActive(true);
-            doctorRepository.save(doctor);
-            return ResponseEntity.ok(doctor);
-        }).orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<Void> activateDoctor(@PathVariable Long doctorId) {
+         try {
+            adminService.setDoctorActiveStatus(doctorId, true);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
+        }
     }
 
-    // Nurse endpoints
+    // --- Nurse Endpoints ---
+
     @GetMapping("/nurses")
     public List<Nurse> getAllNurses() {
-        return nurseRepository.findAll();
+        return adminService.getAllNurses();
     }
 
     @PostMapping("/nurses")
     public ResponseEntity<Nurse> createNurse(@RequestBody CreateNurseRequest request) {
-        String actualName = request.getFirstName() + " " + request.getLastName();
-        User newUser = userService.createUser(request.getRegNumber(), actualName, request.getPassword(), "NURSE");
-
-        Nurse newNurse = new Nurse();
-        newNurse.setRegNumber(request.getRegNumber());
-        newNurse.setFirstName(request.getFirstName());
-        newNurse.setLastName(request.getLastName());
-        newNurse.setGender(request.getGender());
-        newNurse.setName(actualName);
-        newNurse.setUser(newUser);
-        newNurse.setActive(true);
-
-        Nurse savedNurse = nurseRepository.save(newNurse);
-        return ResponseEntity.ok(savedNurse);
+        try {
+            Nurse savedNurse = adminService.createNurse(request);
+            return ResponseEntity.status(HttpStatus.CREATED).body(savedNurse);
+        } catch (IllegalStateException e) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage(), e);
+        }
     }
 
     @PutMapping("/nurses/{nurseId}")
     public ResponseEntity<Nurse> updateNurse(@PathVariable Long nurseId, @RequestBody Nurse nurseDetails) {
-        return nurseRepository.findById(nurseId)
-                .map(nurse -> {
-                    nurse.setFirstName(nurseDetails.getFirstName());
-                    nurse.setLastName(nurseDetails.getLastName());
-                    nurse.setName(nurseDetails.getFirstName() + " " + nurseDetails.getLastName());
-                    nurse.setGender(nurseDetails.getGender());
-                    nurse.setRegNumber(nurseDetails.getRegNumber());
-                    nurse.setActive(nurseDetails.isActive());
-                    Nurse updatedNurse = nurseRepository.save(nurse);
-                    return ResponseEntity.ok(updatedNurse);
-                }).orElse(ResponseEntity.notFound().build());
+        try {
+            Nurse updatedNurse = adminService.updateNurse(nurseId, nurseDetails);
+            return ResponseEntity.ok(updatedNurse);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
+        }
     }
 
     @PatchMapping("/nurses/{nurseId}/deactivate")
-    public ResponseEntity<Nurse> deactivateNurse(@PathVariable Long nurseId) {
-        return nurseRepository.findById(nurseId).map(nurse -> {
-            nurse.setActive(false);
-            nurseRepository.save(nurse);
-            return ResponseEntity.ok(nurse);
-        }).orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<Void> deactivateNurse(@PathVariable Long nurseId) {
+        try {
+            adminService.setNurseActiveStatus(nurseId, false);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
+        }
     }
 
     @PatchMapping("/nurses/{nurseId}/activate")
-    public ResponseEntity<Nurse> activateNurse(@PathVariable Long nurseId) {
-        return nurseRepository.findById(nurseId).map(nurse -> {
-            nurse.setActive(true);
-            nurseRepository.save(nurse);
-            return ResponseEntity.ok(nurse);
-        }).orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<Void> activateNurse(@PathVariable Long nurseId) {
+        try {
+            adminService.setNurseActiveStatus(nurseId, true);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
+        }
     }
 }

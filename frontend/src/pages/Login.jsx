@@ -25,7 +25,7 @@ const Login = () => {
         <div className="login-page">
             <div className="login-box">
                 <div className="login-logo">
-                    <b>Appointment</b>System
+                    <b>Appointment</b> System
                 </div>
                 <div className="card">
                     <div className="card-body login-card-body">
@@ -36,7 +36,7 @@ const Login = () => {
                                 <input
                                     type="text"
                                     className="form-control"
-                                    placeholder="Username (admin, nurse, alice)"
+                                    placeholder="Username"
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
                                     required
@@ -49,7 +49,7 @@ const Login = () => {
                                 <input
                                     type="password"
                                     className="form-control"
-                                    placeholder="Password (password)"
+                                    placeholder="Password"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     required

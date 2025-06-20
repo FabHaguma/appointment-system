@@ -26,7 +26,7 @@ const NurseFormModal = ({ nurse, onClose, onSave }) => {
                 regNumber: '',
                 firstName: '',
                 lastName: '',
-                gender: '',
+                gender: 'MALE',
                 active: true,
                 password: '',
             });
@@ -72,7 +72,6 @@ const NurseFormModal = ({ nurse, onClose, onSave }) => {
                                 <select name="gender" value={formData.gender} onChange={handleChange} className="form-control">
                                     <option value="MALE">Male</option>
                                     <option value="FEMALE">Female</option>
-                                    <option value="OTHER">Other</option>
                                 </select>
                             </div>
                             {!nurse && (

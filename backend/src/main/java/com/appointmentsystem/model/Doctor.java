@@ -1,44 +1,18 @@
 package com.appointmentsystem.model;
 
-import jakarta.persistence.*;
 import lombok.Data;
 
 @Data
-@Entity
-@Table(name = "doctors")
 public class Doctor {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @Column(name = "reg_number", nullable = false, unique = true)
     private String regNumber;
-
-    @Column(name = "first_name", nullable = false)
     private String firstName;
-
-    @Column(name = "last_name", nullable = false)
     private String lastName;
-
-    @Column(nullable = false)
     private String name;
-
-    @Column(name = "gender")
     private String gender;
-
-    @Column(name = "is_active")
     private boolean isActive = true;
-
-    @OneToOne
-    @JoinColumn(name = "user_id", referencedColumnName = "id")
-    private User user; // Link to the user account
-
-    @Column(name = "specialization", nullable = false)
+    private Long userId;
     private String specialization;
-
-    @Column(name = "consultation_duration")
-    private int consultationDuration = 30; // Default to 30 minutes
-
-    @Column(name = "employment_type")
-    private String employmentType; // Full-time, Part-time, etc.
+    private int consultationDuration = 30;
+    private String employmentType;
 }

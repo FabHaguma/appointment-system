@@ -1,8 +1,7 @@
 package com.appointmentsystem.controller;
 
+import com.appointmentsystem.dal.DoctorDao; // Import the DAO
 import com.appointmentsystem.model.Doctor;
-import com.appointmentsystem.repository.DoctorRepository;
-
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -13,15 +12,15 @@ import java.util.List;
 @RequestMapping("/api/doctors")
 public class DoctorController {
 
-    private final DoctorRepository doctorRepository;
+    private final DoctorDao doctorDao; // Use the DAO
 
-    public DoctorController(DoctorRepository doctorRepository) {
-        this.doctorRepository = doctorRepository;
+    public DoctorController(DoctorDao doctorDao) { // Inject the DAO
+        this.doctorDao = doctorDao;
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'NURSE')") // Only Admins and Nurses can see the full doctor list
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'NURSE')")
     public List<Doctor> getActiveDoctors() {
-        return doctorRepository.findByIsActiveTrue();
+        return doctorDao.findByIsActiveTrue(); // Call the DAO method
     }
 }

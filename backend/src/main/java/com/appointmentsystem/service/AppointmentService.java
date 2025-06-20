@@ -1,49 +1,50 @@
 package com.appointmentsystem.service;
 
+import com.appointmentsystem.dal.AppointmentDao;
+import com.appointmentsystem.dal.DoctorDao;
 import com.appointmentsystem.dto.AppointmentRequest;
 import com.appointmentsystem.model.Appointment;
 import com.appointmentsystem.model.Doctor;
-import com.appointmentsystem.repository.AppointmentRepository;
-import com.appointmentsystem.repository.DoctorRepository;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.format.DateTimeFormatter;
 
 @Service
 public class AppointmentService {
 
-    @Autowired
-    private AppointmentRepository appointmentRepository;
+    private final AppointmentDao appointmentDao;
+    private final DoctorDao doctorDao;
+    private final EmailService emailService;
 
     @Autowired
-    private DoctorRepository doctorRepository;
+    public AppointmentService(AppointmentDao appointmentDao, DoctorDao doctorDao, EmailService emailService) {
+        this.appointmentDao = appointmentDao;
+        this.doctorDao = doctorDao;
+        this.emailService = emailService;
+    }
 
-    @Autowired
-    private EmailService emailService; // Inject EmailService
-
+    @Transactional
     public Appointment createAppointment(AppointmentRequest request) {
-        // Prevent double booking
-        if (appointmentRepository.existsByDoctorIdAndStartTime(request.getDoctorId(), request.getStartTime())) {
+        if (appointmentDao.existsByDoctorIdAndStartTime(request.getDoctorId(), request.getStartTime())) {
             throw new IllegalStateException("Time slot is already booked.");
         }
 
-        Doctor doctor = doctorRepository.findById(request.getDoctorId())
-                .orElseThrow(() -> new IllegalArgumentException("Doctor not found."));
+        Doctor doctor = doctorDao.findById(request.getDoctorId())
+                .orElseThrow(() -> new IllegalArgumentException("Doctor not found with ID: " + request.getDoctorId()));
         
         Appointment appointment = new Appointment();
-        appointment.setDoctor(doctor);
+        appointment.setDoctorId(doctor.getId());
         appointment.setPatientName(request.getPatientName());
         appointment.setPatientEmail(request.getPatientEmail());
         appointment.setPatientPhone(request.getPatientPhone());
         appointment.setReasonForVisit(request.getReasonForVisit());
         appointment.setStartTime(request.getStartTime());
-        appointment.setEndTime(request.getStartTime().plusMinutes(doctor.getConsultationDuration())); // Use doctor's duration
+        appointment.setEndTime(request.getStartTime().plusMinutes(doctor.getConsultationDuration()));
 
-        Appointment savedAppointment = appointmentRepository.save(appointment);
+        Appointment savedAppointment = appointmentDao.create(appointment);
 
-        // Send confirmation email
         if (savedAppointment.getPatientEmail() != null && !savedAppointment.getPatientEmail().isEmpty()) {
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMMM d, yyyy 'at' h:mm a");
             String formattedTime = savedAppointment.getStartTime().format(formatter);
@@ -55,12 +56,16 @@ public class AppointmentService {
             );
         }
 
+        savedAppointment.setDoctor(doctor); // Populate transient field for the response object
         return savedAppointment;
     }
 
+    @Transactional
     public void cancelAppointment(Long appointmentId) {
-        appointmentRepository.findById(appointmentId).ifPresent(appointment -> {
-            // Send cancellation email if patient email exists
+        appointmentDao.findById(appointmentId).ifPresent(appointment -> {
+            Doctor doctor = doctorDao.findById(appointment.getDoctorId())
+                .orElseThrow(() -> new IllegalStateException("Data integrity issue: Doctor not found for appointment " + appointmentId));
+
             if (appointment.getPatientEmail() != null && !appointment.getPatientEmail().isEmpty()) {
                 DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMMM d, yyyy 'at' h:mm a");
                 String formattedTime = appointment.getStartTime().format(formatter);
@@ -68,10 +73,10 @@ public class AppointmentService {
                     appointment.getPatientEmail(),
                     appointment.getPatientName(),
                     formattedTime,
-                    appointment.getDoctor().getName()
+                    doctor.getName()
                 );
             }
-            appointmentRepository.deleteById(appointmentId);
+            appointmentDao.cancel(appointmentId);
         });
     }
 }

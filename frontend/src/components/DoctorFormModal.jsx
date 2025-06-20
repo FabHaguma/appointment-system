@@ -32,10 +32,10 @@ const DoctorFormModal = ({ doctor, onClose, onSave }) => {
                 regNumber: '',
                 firstName: '',
                 lastName: '',
-                gender: '',
+                gender: 'MALE',
                 specialization: '',
                 consultationDuration: 30,
-                employmentType: '',
+                employmentType: 'FULL_TIME',
                 active: true,
                 password: '',
             });

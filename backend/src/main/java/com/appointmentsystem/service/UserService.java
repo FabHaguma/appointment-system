@@ -1,48 +1,46 @@
 package com.appointmentsystem.service;
 
+import com.appointmentsystem.dal.UserDao;
 import com.appointmentsystem.model.User;
-import com.appointmentsystem.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class UserService {
 
-    private final UserRepository userRepository;
+    private final UserDao userDao;
     private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
-        this.userRepository = userRepository;
+    public UserService(UserDao userDao, PasswordEncoder passwordEncoder) {
+        this.userDao = userDao;
         this.passwordEncoder = passwordEncoder;
     }
 
+    @Transactional
     public User createUser(String username, String actualName, String password, String role) {
-        if (userRepository.findByUsername(username).isPresent()) {
-            throw new RuntimeException("Username already exists");
+        if (userDao.findByUsername(username).isPresent()) {
+            throw new IllegalStateException("Username already exists: " + username);
         }
-        User newUser = new User();
-        newUser.setUsername(username);
-        newUser.setActualName(actualName);
-        newUser.setPassword(passwordEncoder.encode(password));
-        newUser.setRole(role);
-        return userRepository.save(newUser);
+        String encodedPassword = passwordEncoder.encode(password);
+        return userDao.createUser(username, actualName, encodedPassword, role);
     }
 
+    @Transactional
     public User updateUserCredentials(String currentUsername, String newUsername, String newPassword) {
-        User user = userRepository.findByUsername(currentUsername)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        userDao.findByUsername(currentUsername)
+                .orElseThrow(() -> new RuntimeException("User not found with username: " + currentUsername));
 
         if (newUsername != null && !newUsername.isEmpty() && !newUsername.equals(currentUsername)) {
-            if (userRepository.findByUsername(newUsername).isPresent()) {
-                throw new RuntimeException("New username already exists");
+            if (userDao.findByUsername(newUsername).isPresent()) {
+                throw new IllegalStateException("New username is already taken: " + newUsername);
             }
-            user.setUsername(newUsername);
         }
 
-        if (newPassword != null && !newPassword.isEmpty()) {
-            user.setPassword(passwordEncoder.encode(newPassword));
-        }
-
-        return userRepository.save(user);
+        String encodedPassword = (newPassword != null && !newPassword.isEmpty())
+                ? passwordEncoder.encode(newPassword) : null;
+        
+        return userDao.updateUserCredentials(currentUsername, newUsername, encodedPassword)
+                .orElseThrow(() -> new RuntimeException("Failed to update credentials for user: " + currentUsername));
     }
 }

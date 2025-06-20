@@ -17,7 +17,8 @@ import java.util.function.Function;
 public class JwtService {
     // Generate a secure secret key at https://www.allkeysgenerator.com/ (256-bit)
     // and store it securely, e.g., in application properties or environment variables.
-    private static final String SECRET = "4E645267556B58703273357638792F423F4528482B4D6251655468576D5A7134";
+    @org.springframework.beans.factory.annotation.Value("${jwt.secret}")
+    private String SECRET;
 
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);

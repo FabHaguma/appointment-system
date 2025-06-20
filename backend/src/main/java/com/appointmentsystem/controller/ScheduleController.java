@@ -1,27 +1,29 @@
 package com.appointmentsystem.controller;
 
+import com.appointmentsystem.dal.DoctorDao; // Import the DAO
 import com.appointmentsystem.dto.ScheduleSlot;
+import com.appointmentsystem.model.Doctor;
 import com.appointmentsystem.service.ScheduleService;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.web.bind.annotation.*;
-import java.time.LocalDate;
-import java.util.List;
-// ... imports
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import com.appointmentsystem.repository.DoctorRepository;
-import com.appointmentsystem.model.Doctor;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
+
+import java.time.LocalDate;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/schedules")
 public class ScheduleController {
 
     private final ScheduleService scheduleService;
-    private final DoctorRepository doctorRepository;
+    private final DoctorDao doctorDao; // Use the DAO
 
-    public ScheduleController(ScheduleService scheduleService, DoctorRepository doctorRepository) {
+    public ScheduleController(ScheduleService scheduleService, DoctorDao doctorDao) { // Inject the DAO
         this.scheduleService = scheduleService;
-        this.doctorRepository = doctorRepository;
+        this.doctorDao = doctorDao;
     }
 
     @GetMapping("/doctors/{doctorId}")
@@ -40,8 +42,9 @@ public class ScheduleController {
         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
     ) {
         String username = authentication.getName();
-        Doctor doctor = doctorRepository.findByUserUsername(username) // Create this method in DoctorRepository
-            .orElseThrow(() -> new RuntimeException("Doctor profile not found for user: " + username));
+        // Use the DAO to find the doctor profile
+        Doctor doctor = doctorDao.findByUserUsername(username)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"Doctor profile not found for user: " + username));
         
         return scheduleService.getWeeklySchedule(doctor.getId(), date);
     }

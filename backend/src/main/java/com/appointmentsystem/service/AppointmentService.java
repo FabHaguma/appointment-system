@@ -5,18 +5,23 @@ import com.appointmentsystem.model.Appointment;
 import com.appointmentsystem.model.Doctor;
 import com.appointmentsystem.repository.AppointmentRepository;
 import com.appointmentsystem.repository.DoctorRepository;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.time.format.DateTimeFormatter;
 
 @Service
 public class AppointmentService {
 
-    private final AppointmentRepository appointmentRepository;
-    private final DoctorRepository doctorRepository;
+    @Autowired
+    private AppointmentRepository appointmentRepository;
 
-    public AppointmentService(AppointmentRepository appointmentRepository, DoctorRepository doctorRepository) {
-        this.appointmentRepository = appointmentRepository;
-        this.doctorRepository = doctorRepository;
-    }
+    @Autowired
+    private DoctorRepository doctorRepository;
+
+    @Autowired
+    private EmailService emailService; // Inject EmailService
 
     public Appointment createAppointment(AppointmentRequest request) {
         // Prevent double booking
@@ -36,10 +41,37 @@ public class AppointmentService {
         appointment.setStartTime(request.getStartTime());
         appointment.setEndTime(request.getStartTime().plusMinutes(doctor.getConsultationDuration())); // Use doctor's duration
 
-        return appointmentRepository.save(appointment);
+        Appointment savedAppointment = appointmentRepository.save(appointment);
+
+        // Send confirmation email
+        if (savedAppointment.getPatientEmail() != null && !savedAppointment.getPatientEmail().isEmpty()) {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMMM d, yyyy 'at' h:mm a");
+            String formattedTime = savedAppointment.getStartTime().format(formatter);
+            emailService.sendAppointmentConfirmation(
+                savedAppointment.getPatientEmail(),
+                savedAppointment.getPatientName(),
+                formattedTime,
+                doctor.getName()
+            );
+        }
+
+        return savedAppointment;
     }
 
     public void cancelAppointment(Long appointmentId) {
-        appointmentRepository.deleteById(appointmentId);
+        appointmentRepository.findById(appointmentId).ifPresent(appointment -> {
+            // Send cancellation email if patient email exists
+            if (appointment.getPatientEmail() != null && !appointment.getPatientEmail().isEmpty()) {
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMMM d, yyyy 'at' h:mm a");
+                String formattedTime = appointment.getStartTime().format(formatter);
+                emailService.sendAppointmentCancellation(
+                    appointment.getPatientEmail(),
+                    appointment.getPatientName(),
+                    formattedTime,
+                    appointment.getDoctor().getName()
+                );
+            }
+            appointmentRepository.deleteById(appointmentId);
+        });
     }
 }

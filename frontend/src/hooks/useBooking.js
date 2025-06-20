@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import * as api from '../services/api';
+import toast from 'react-hot-toast';
 
 export const useBooking = (onSuccess) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -26,8 +27,9 @@ export const useBooking = (onSuccess) => {
       await api.createAppointment(appointmentData);
       closeBookingModal();
       onSuccess();
+      toast.success('Appointment booked successfully!');
     } catch (error) {
-      alert("Failed to book appointment. The slot may have been taken.");
+      toast.error("Failed to book appointment. The slot may have been taken.");
       console.error("Booking failed", error);
     }
   };
@@ -37,9 +39,10 @@ export const useBooking = (onSuccess) => {
       try {
         await api.cancelAppointment(slot.appointmentId);
         onSuccess();
+        toast.success('Appointment cancelled successfully!');
       } catch (error) {
         console.error("Cancellation failed", error);
-        alert("Failed to cancel appointment.");
+        toast.error("Failed to cancel appointment.");
       }
     }
   };

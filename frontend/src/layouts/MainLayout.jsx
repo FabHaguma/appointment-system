@@ -32,7 +32,7 @@ const MainLayout = ({ children }) => {
                         <div className="dropdown-menu dropdown-menu-lg dropdown-menu-right">
                             <span className="dropdown-item dropdown-header">{user?.actualName}</span>
                             <div className="dropdown-divider"></div>
-                            {(user?.role === 'DOCTOR' || user?.role === 'NURSE') && (
+                            {(user?.role === 'DOCTOR' || user?.role === 'NURSE' || user?.role === 'ADMIN') && (
                                 <Link to="/account-settings" className="dropdown-item">
                                     <i className="fas fa-key mr-2"></i> Change Password
                                 </Link>
